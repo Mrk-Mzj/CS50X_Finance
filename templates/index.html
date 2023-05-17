@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+
+
+{% block title %}
+Wallet
+{% endblock %}
+
+
+{% block main %}
+<h1>Wallet</h1>
+
+<div class="mt-5 justify-content-center" style="display:inline-block; width: 900px">
+    <table class="table table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>company</th>
+                <th>stocks</th>
+                <th>current price</th>
+                <th>total value</th>
+            </tr>
+        </thead>
+
+        {% for possession in possessions %}
+        <tr>
+            <td>{{ possession['of_company'] }}</td>
+            <td>{{ possession['how_many'] }}</td>
+            <td>{{ possession['current_price'] }}</td>
+            <td>{{ possession['total_value'] }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+
+    <div class="mt-5 row justify-content-end">
+        <table class="table table-hover" style="width: 600px">
+            <thead class="thead-dark">
+                <tr>
+                    <th>current cash balance</th>
+                    <th>grand total (stocks value plus cash)</th>
+                </tr>
+            </thead>
+            <tr>
+                <td>{{ cash }}</td>
+                <td>{{ grand_total }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,6 +1,0 @@
-rename branch locally from test_and_tutorials to main:
-
-git branch -m Tests_and_tutorials main
-git fetch origin
-git branch -u origin/main main
-git remote set-head origin -a
