@@ -1,5 +1,5 @@
 import os, re
-import requests  # pip install requests
+import requests
 import urllib.parse
 
 from flask import redirect, render_template, request, session
@@ -64,7 +64,7 @@ def lookup(symbol):
 
     # Połącz się z API:
     try:
-        api_key = os.environ.get("API_KEY")
+        api_key = os.environ.get("IEX_API_KEY")
 
         # Stwórz URL z nazwą firmy i kluczem API:
         # ...quote_plus() - bierze symbol oznaczający firmę i konwertuje go do postaci bezpiecznej dla URL;
