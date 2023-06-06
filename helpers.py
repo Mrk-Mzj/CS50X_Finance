@@ -10,14 +10,12 @@ def apology(message, code=400):
     """Render message as an apology to user."""
 
     def escape(s):
-        # Kiedy pojawia się błąd, funkcja otwiera stronę apology.html i przekazuje jej komunikat.
-        # Generator memów, użyty na tej stronie, oczekuje komunikatów w formie GET, czyli w URL.
-        # URL nie obsługuje wszystkich znaków. Twórca generatora wmyślił obejście, zastępowanie
-        # jendych znaków innymi. Poniżej je implementujemy.
         """
         Escape special characters.
-
         https://github.com/jacebrowning/memegen#special-characters
+
+        When an error occurs, the function opens the apology.html page and gives it a GET message.
+        Characters that cannot be implemented in the URL are replaced by others.
         """
         for old, new in [
             ("-", "--"),
@@ -39,16 +37,11 @@ def login_required(f):
     """
     Decorate routes to require login.
     https://flask.palletsprojects.com/en/1.1.x/patterns/viewdecorators/
+
+    Decorative function. Takes the original function as f.
+    Defines a new function (decorated_function) that contains the old one + code to check if there is a cake.
+    If the cake exists it will return the original function. If not, it will redirect to the login page.
     """
-
-    # Login_required to taka funkcja strażnik, napisana przez twórców Flaska.
-    # 1. Przyjmuje oryginalną funkcję jako f.
-    # 2. Definiuje nową funkcję, która zawiera starą + dodatkowy kod sprawdzający czy jest ciastko.
-    # 3. Zwraca nową funkcję. Ta, jeśli ciastko istnieje, zwróci funkcję oryginalną.
-
-    # Czyli login_required to automat pakujący - przyjmuje funkcję f i zwraca decorated_function.
-    # Decorated_function to paczka zawierająca nasz oryginał f z dodatkowym kodem.
-    # Kod sprawdzi czy jest ciastko. Jeśli tak, decorated_function zwróci oryginalną funkcję f.
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -62,28 +55,29 @@ def login_required(f):
 def lookup(symbol):
     """Look up quote for symbol."""
 
-    # Połącz się z API:
+    # Connect to API:
     try:
         api_key = os.environ.get("IEX_API_KEY")
 
-        # Stwórz URL z nazwą firmy i kluczem API:
-        # ...quote_plus() - bierze symbol oznaczający firmę i konwertuje go do postaci bezpiecznej dla URL;
-        # np. '/El Niño/' -> '%2FEl+Ni%C3%B1o%2F'
+        # Create URLs with company name and API key.
+        # ...quote_plus() - takes the symbol denoting the company and converts it
+        # to a URL-safe form; i.e. '/El Niño/' -> '%2FEl+Ni%C3%B1o%2F'
         url = f"https://cloud.iexapis.com/stable/stock/{urllib.parse.quote_plus(symbol)}/quote?token={api_key}"
 
-        # zapisz odpowiedź serwera w zmiennej response:
+        # Store the server's response in the 'response' variable:
         response = requests.get(url)
 
-        # jeśli pojawi się błąd podczas pobierania obiektu z URL, zwróć obiekt HTTPError który wyjaśni, co się stało:
+        # if an error occurs while retrieving an object from a URL,
+        # return an HTTPError object that explains what happened:
         response.raise_for_status()
 
     except requests.RequestException:
         return None
 
-    # Przetwórz odpowiedź na zmienne:
+    # Process the response to the variables:
     try:
-        # Zamień odpowiedź serwera na obiekt JSON o nazwie quote,
-        # wyciągnij z niego 3 wartości i zwróć z naszymi krótszymi nazwami: name, price i symbol:
+        # Turn the server response into a JSON object named 'quote',
+        # extract 3 values from it and return with shorter names: name, price and symbol:
         quote = response.json()
         return {
             "name": quote["companyName"],
@@ -99,12 +93,14 @@ def usd(value):
     return f"${value:,.2f}"
 
 
-# Wyciaganie numeru użytkownika z ciastka.
-# id=session["user_id"] nie dało się go zadeklarować raz, na górze programu w app.py, bo występował błąd.
-# Musiało być deklarowane we wnętrzu funkcji związanej z HTTP.
-# Nie dało się go zadeklarować raz, wewnątrz login albo index, bo nie wychodziło poza scope.
-# Było deklarowane w wielu funkcjach od nowa. Wrzucenie go do funkcji w helpers skróciło i uprościo kod.
 def id():
+    # Extracting a user number from a cookie.
+
+    # id = session["user_id"] could not be declared once, at the top of the program in app.py,
+    # because there was an error. It had to be declared inside an HTTP-related function.
+
+    # It could not be declared once, inside login or index, because it would not go outside the scope.
+    # It was declared in many functions from scratch. Putting it into functions in helpers shortened and simplified the code.
     return session["user_id"]
 
 
@@ -123,8 +119,8 @@ def password_check(password):
     # calculating the length
     length_error = len(password) < 8
 
-    # searching for digits
-    # Sprawdzenia re.search zwracają dopasowany obiekt lub None. Dopisanie do nich 'is None' zwraca Boolean:
+    # searching for digits.
+    # The 're.search' checks return a matched object or None. Adding 'is None' to them returns a Boolean:
     digit_error = re.search(r"\d", password) is None
 
     # searching for uppercase

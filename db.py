@@ -1,4 +1,4 @@
-# Funkcje obsługujące bazę danych
+# Functions supporting the database
 
 from cs50 import SQL
 
@@ -6,22 +6,22 @@ db = SQL("sqlite:///finance.db")
 
 
 def cash_of(id):
-    # Sprawdzenie, ile gotówki ma user.
-    # Baza jest napisana tak, że dla cash nie zwróci obiektu pustego,
-    # user w bazie zawsze ma jakąś gotówkę. Stąd od razu robię uporządkowywanie
-    # zmiennej cash przez dopisanie [0]["cash"], bez obawy o błąd.
+    # Checking how much cash the user has.
+    # The base is written so that for "cash" it will not return an empty object.
+    # User in database always has some cash.
+    # Hence, I immediately write [0]["cash"], without risk of error.
 
     return db.execute("SELECT cash FROM users WHERE id=?", id)[0]["cash"]
 
 
 def check_username(id):
-    # Sprawdzenie nazwy użytkownika przypisanej do id
+    # Checking the username assigned to id
 
     return db.execute("SELECT username FROM users WHERE id = ?", id)[0]["username"]
 
 
 def delete_sum_up(id, of_company):
-    # Usunięcie wszystkich akcji, jeśi user sprzedaje całość
+    # Removal of all shares, if the user sells the whole thing
 
     db.execute(
         "DELETE FROM ownership WHERE person_id=? AND of_company=?",
@@ -31,7 +31,7 @@ def delete_sum_up(id, of_company):
 
 
 def read_history(id):
-    # Wczytanie historii transakcji użytkownika
+    # Loading the user's transaction history
 
     return db.execute(
         "SELECT when_did, did_what, how_many, for_price, of_company FROM purchases WHERE person_id=? ORDER BY when_did ASC",
@@ -44,8 +44,8 @@ def password_update(hash, id):
 
 
 def possessions_of(id):
-    # Sprawdzenie, jakie akcje ma user i ile.
-    # Te dane wylądują w dwóch pierwszych kolumnach na stronie www.
+    # Checking what and how many shares user has. This data will be displayyed
+    # in the first two columns on the website.
 
     return db.execute(
         "SELECT how_many, of_company FROM ownership WHERE person_id=?", id
@@ -53,7 +53,7 @@ def possessions_of(id):
 
 
 def read_sum_up(id, of_company):
-    # Sprawdzenie, ile akcji spółki ma user
+    # Checking how many shares the user has
 
     return db.execute(
         "SELECT how_many FROM ownership WHERE person_id=? AND of_company=?",
@@ -63,25 +63,25 @@ def read_sum_up(id, of_company):
 
 
 def rows_of_id(id):
-    # Wczytanie danych logowania po id
+    # Loading login data by id
 
     return db.execute("SELECT * FROM users WHERE id = ?", id)
 
 
 def rows_of_username(username):
-    # Wczytanie danych logowania po username
+    # Loading login data by username
 
     return db.execute("SELECT * FROM users WHERE username = ?", username)
 
 
 def save_balance(balance, id):
-    # Zapisanie aktualnej kwoty na koncie usera (tabl. users)
+    # Saving the current amount in the user's account (the 'users' table)
 
     db.execute("UPDATE users SET cash=? WHERE id=?", balance, id)
 
 
 def save_purchase(id, did_what, shares, for_price, of_company):
-    # Zapisanie operacji w szczegółowym wykazie transakcji (tabl. purchases)
+    # Recording of operations in the detailed list of transactions (table 'purchases')
 
     db.execute(
         "INSERT INTO purchases (when_did, person_id, did_what, how_many, for_price, of_company) VALUES (datetime('now'), ?, ?, ?, ?, ?)",
@@ -94,7 +94,7 @@ def save_purchase(id, did_what, shares, for_price, of_company):
 
 
 def save_sum_up(id, sum_up, of_company):
-    # Zapisanie ilości akcji, jeśli user miał ich zero do tej pory
+    # Record the number of shares if the user has had zero so far
 
     db.execute(
         "INSERT INTO ownership (person_id, how_many, of_company) VALUES (?,?,?)",
@@ -105,12 +105,12 @@ def save_sum_up(id, sum_up, of_company):
 
 
 def save_user(username, hash):
-    # Dodanie nowego użytkownika do bazy danych
+    # Adding a new user to the database
     db.execute("INSERT INTO users (username, hash) VALUES (?, ?)", username, hash)
 
 
 def update_sum_up(id, sum_up, of_company):
-    # Zaktualizowanie ilości akcji, które user miał do tej pory
+    # Update the number of shares a user has had so far
 
     db.execute(
         "UPDATE ownership SET how_many=? WHERE person_id=? AND of_company=?",
