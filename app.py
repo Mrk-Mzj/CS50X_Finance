@@ -58,7 +58,7 @@ def after_request(response):
 
 
 # Login_required to funkcja dekorująca, stworzona w helpers.py.
-# Przekierowuje niezalogowanych do strony logowania.
+# Redirects non-loggers to the login page.
 @app.route("/change_password", methods=["GET", "POST"])
 @login_required
 def change_password():
@@ -69,7 +69,7 @@ def change_password():
         password = request.form.get("password")
         confirmation = request.form.get("confirmation")
 
-        # sprawdzenie danych:
+        # data check:
 
         if not old_password:
             return apology("must provide old password", 403)
@@ -86,32 +86,32 @@ def change_password():
         elif password == old_password:
             return apology("must provide password different than previous one", 403)
 
-        # Sprawdź czy nowe hasło jest bezpieczne:
+        # Check if your new password is secure:
 
         elif password_check(password)["password_ok"] == False:
             return apology("must be: 8 long, 1 digit, 1 symbol, 1 upper, 1 lower", 403)
-        # password_check("a") zwraca:
+        # password_check("a") returns:
         # {'password_ok': False, 'length_error': True, 'digit_error': True, 'uppercase_error': True, 'lowercase_error': False, 'symbol_error': True}
 
-        # Sprawdź czy stare hasło się zgadza:
+        # Check if the old password matches:
 
-        # wczytanie danych logowania
+        # loading login data
         rows = rows_of_id(id())
 
-        # upewnij się, że user istnieje i wpisane old_password zgadza się z bazą danych
+        # Make sure the user exists and the old_password entered matches the database
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], old_password):  # type: ignore
-            # Powyższy dopisek to info do Pylance by nie podkreślał błędu w kodzie od autorów.
-            # Pylance martwi się, że pytanie o hasło może zwrócić None i wywalić kod. Niepotrzebnie.
-            # Jeśli udało się wczytać dane o userze: len(rows)=1, to wśród nich będzie hasło.
+            # type: ignore is an info for Pylance snot to highlight an error in the code from the CS50 authors.
+            # Pylance is worried that asking for a password might return None and blow up the code. Unnecessarily.
+            # If you managed to load the data about the user: len(rows)=1, then among them will be the password.
             return apology("invalid old password", 403)
 
-        # haszuj hasło
+        # hash the password
         hash = generate_password_hash(password)
 
-        # aktualizuj hasło u bieżącego użytkownika
+        # update the password on the current user
         password_update(hash, id())
 
-        # przekieruj do logowania:
+        # redirect to login:
         return redirect("/login")
 
     else:
@@ -125,34 +125,34 @@ def index():
 
     grand_total = 0
 
-    # Przygotowanie danych do tabeli 1:
+    # Preparation of data for table 1:
 
     possessions = possessions_of(id())
 
-    # Następnie sprawdzamy, ile obecnie kosztuje akcja każdej ze spółek (current_price)
-    # i ile w związku z tym user ma z nich pieniędzy (total_value).
-    # Te dane dopisuję do poprzednich. Wylądują w 3 i 4 kolumnie tabeli na www.
+    # Next, we check how much a share of each company currently costs (current_price)
+    # and how much money the user has from them as a result (total_value).
+    # I add this data to the previous ones. They land in the 3rd and 4th column of the table on www.
 
     for possession in possessions:
-        # odpytujemy API o zestaw danych dla aktualnie sprawdzanej spółki
+        # querying the API for the dataset for the currently checked company
         current = lookup(possession["of_company"])
 
-        # jeśli API zwróci odpowiedź, uzupełniamy current_price tej spółki
+        # if the API returns a response, we complete the current_price of this company
         if current:
             possession["current_price"] = usd(current["price"])
 
-            # i obliczamy ile są warte dla usera
+            # and we calculate how much they are worth to the user
             possession["total_value"] = usd(current["price"] * possession["how_many"])
 
-            # zaczynamy też obliczać sumę jego całego majątku
+            # we also begin to calculate the sum of his total assets
             grand_total = grand_total + (current["price"] * possession["how_many"])
 
-    # Przygotowanie danych do tabeli 2:
+    # Preparation of data for table 2:
 
-    # Sprawdzenie, ile gotówki ma user
+    # Checking how much cash the user has
     cash = cash_of(id())
 
-    # Wysłanie wszystkich danych do wyświetlenia
+    # Sending all data for display
     return render_template(
         "index.html",
         possessions=possessions,
@@ -166,61 +166,61 @@ def index():
 def buy():
     """Buy shares of stock"""
 
-    # jeśli user podał symbol szukanej spółki:
+    # if the user specified the symbol of the company he is looking for:
     if request.method == "POST":
-        # sprawdź czy podano symbol
+        # check that the symbol is given
         symbol = request.form.get("symbol")
         if not symbol:
             return apology("must provide company symbol", 403)
 
-        # sprawdź czy istnieje spółka dla tego symbolu
+        # check if there is a company for this symbol
         lookups = lookup(symbol)
         if lookups == None:
             return apology("there is no such company", 403)
 
-        # sprawdź czy shares istnieje i jest > 0
-        # uwaga: formularze we Flask domyślnie zawsze zwracają STR
+        # check if 'shares' exists and is > 0
+        # note: forms in Flask always return STR by default
         shares = request.form.get("shares", type=int)
         if not shares or shares <= 0:
             return apology("please provide positive INT value", 403)
 
-        # Sprawdzenie, ile gotówki ma user
+        # Checking how much cash the user has
         cash = cash_of(id())
 
-        # sprawdź czy stać go na zakup
+        # see if he can afford to buy
         if cash < (lookups["price"] * shares):
             return apology("not enough cash", 403)
 
-        # Zapisz transakcję w szczegółowym wykazie transakcji (tabl. purchases)
+        # Save the transaction in the detailed list of transactions (table 'purchases')
         for_price = lookups["price"]
         of_company = lookups["symbol"]
         save_purchase(id(), "bought", shares, for_price, of_company)
 
-        # Zapisz pomniejszoną kwotę na koncie usera (tabl. users)
+        # Save the reduced amount in the user's account (table 'users')
         balance = cash - (shares * for_price)
         save_balance(balance, id())
 
-        # Zaktualizuj wykaz posiadaczy akcji (tabl. ownership)
+        # Update the list of share holders (table 'ownership')
 
-        # 1 - pobierz ilość akcji danej spółki, które ma user:
+        # 1 - get the number of shares of a given company that the user has:
         sum_up = read_sum_up(id(), of_company)
 
-        # 2 - zaktualizuj ilość akcji:
-        # a) jeśli user kupuje akcje tej spółki po raz pierwszy
+        # 2 - update the number of shares:
+        # a) if user buys shares of this company for the first time
         if not sum_up:
             sum_up = shares
             save_sum_up(id(), sum_up, of_company)
 
-        # b) jeśli user kupuje akcje tej spółki po raz kolejny
+        # b) if user buys shares of this company once again
         else:
             sum_up = sum_up[0]["how_many"] + shares
             update_sum_up(id(), sum_up, of_company)
 
         return redirect("/")
 
-    # jeśli wszedł przez GET:
+    # if he entered via GET:
     else:
-        # zapytaj usera o symbol spółki:
+        # ask username of company symbol:
         return render_template("buy.html")
 
 
@@ -232,8 +232,8 @@ def history():
     return render_template("history.html", history=read_history(id()))
 
 
-# Login zamienia wprowadzone hasło na hasz. Porównuje go z haszem w bazie danych.
-# Tworzy ciastko z id użytkownika. W ten sposób ścieżki wiedzą, który user jest zalogowany.
+# Login converts the entered password into a hash. Compares it with the hash in the database.
+# Creates a cookie with the user id. This way paths know which user is logged in.
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
@@ -254,18 +254,18 @@ def login():
         elif not password:
             return apology("must provide password", 403)
 
-        # Wczytanie danych logowania po username
+        # Loading login credentials by 'username'
         rows = rows_of_username(username)
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], password):  # type: ignore
-            # Powyższy dopisek to info do Pylance by nie podkreślał błędu w kodzie od autorów.
-            # Pylance martwi się, że pytanie o hasło może zwrócić None i wywalić kod. Niepotrzebnie.
-            # Jeśli udało się wczytać dane o userze: len(rows)=1, to wśród nich będzie hasło.
+            # The above note is info to Pylance not to highlight the error in the code from the authors.
+            # Pylance points out that asking for a password may return None.
+            # If you managed to load the user data: len(rows)=1, the password will be among them.
             return apology("invalid username and/or password", 403)
 
         # Remember which user id has logged in
-        # Dodaję też imię usera, żeby stronka mogła pokazać imię zalogowanej osoby
+        # I also add the name of the user so that the page can show the name of the person logged in.
         session["user_id"] = rows[0]["id"]
         session["user_name"] = check_username(id())
 
@@ -293,24 +293,24 @@ def logout():
 def quote():
     """look up a stock’s current price."""
 
-    # jeśli user podał symbol szukanej spółki:
+    # if the user specified the symbol of the company he is looking for:
     if request.method == "POST":
-        # sprawdzenie czy podano symbol
+        # check if the symbol is given
         symbol = request.form.get("symbol")
         if not symbol:
             return apology("must provide company symbol", 403)
 
-        # sprawdzenie czy istnieje spółka dla tego symbolu
+        # checking if there is a company for this symbol
         lookups = lookup(symbol)
         if lookups == None:
             return apology("there is no such company", 403)
 
-        # jeśli istnieje przekaż info o niej do quoted.html
+        # if the company exists pass the info about it to quoted.html
         return render_template("quoted.html", lookups=lookups)
 
-    # jeśli wszedł przez GET:
+    # if the user entered via GET:
     else:
-        # zapytaj usera o symbol spółki:
+        # ask username of company symbol:
         return render_template("quote.html")
 
 
@@ -323,7 +323,7 @@ def register():
         password = request.form.get("password")
         confirmation = request.form.get("confirmation")
 
-        # sprawdzenie danych:
+        # data check:
 
         if not username:
             return apology("must provide username", 403)
@@ -342,23 +342,23 @@ def register():
 
         elif password_check(password)["password_ok"] == False:
             return apology("must be: 8 long, 1 digit, 1 symbol, 1 upper, 1 lower", 403)
-        # password_check("a") zwraca:
+        # password_check("a") returns:
         # {'password_ok': False, 'length_error': True, 'digit_error': True, 'uppercase_error': True, 'lowercase_error': False, 'symbol_error': True}
 
-        # Na samym końcu daję czytanie bazy danych.
-        # Załaduj informacje o potencjalnym użytkowniku z tym loginem.
-        # Jeśli się uda, zgłoś, że login jest już zajęty:
+        # At the very end I give the database reading.
+        # Load information about a potential user with this login.
+        # If successful, report that the login is already taken:
         rows = rows_of_username(username)
         if rows and (username == rows[0]["username"]):
             return apology("name already taken", 403)
 
-        # haszuj hasło
+        # hash the password
         hash = generate_password_hash(password)
 
-        # dodaj usera do bazy danych:
+        # add user to the database
         save_user(username, hash)
 
-        # przekieruj do logowania:
+        # redirect to login page:
         return redirect("/login")
 
     else:
@@ -370,64 +370,64 @@ def register():
 def sell():
     """Sell shares of stock"""
 
-    # jeśli user podał symbol szukanej spółki:
+    # if the user specified the symbol of the company he is looking for:
     if request.method == "POST":
-        # sprawdź czy podano symbol
+        # check if symbol is given
         symbol = request.form.get("symbol")
         if not symbol:
             return apology("must provide company symbol", 403)
 
-        # sprawdź czy istnieje spółka dla tego symbolu
+        # check if there is a company for this symbol
         lookups = lookup(symbol)
         if lookups == None:
             return apology("there is no such company", 403)
 
-        # sprawdź czy shares istnieje i jest > 0
-        # uwaga: formularze we Flask domyślnie zawsze zwracają STR
+        # check if 'shares' exists and is > 0
+        # note: forms in Flask always return STR by default
         shares = request.form.get("shares", type=int)
         if not shares or shares <= 0:
             return apology("please provide positive INT value", 403)
 
-        # Sprawdź, ile udziałów ma user i ile może sprzedać:
+        # Check how many shares the user has and how many he can sell:
 
-        # sprawdź ilość akcji danej spółki, które ma user:
+        # check the number of shares of a particular company that the user has:
         of_company = lookups["symbol"]
         sum_up = read_sum_up(id(), of_company)
 
-        # jeśli user ma te akcje, oczyść zmienną; jeśli nie, zgłoś błąd:
+        # if user has these actions, clean up variable; if not, report error:
         if sum_up:
             sum_up = sum_up[0]["how_many"]
         else:
             return apology("you don't have shares of this company", 403)
 
-        # sprawdź czy user może tyle sprzedać
+        # see if the user can sell that much
         if sum_up < shares:
             return apology("you don't have this many shares", 403)
 
-        # Zapisz transakcję w szczegółowym wykazie transakcji (tabl. purchases)
+        # Save the transaction in the detailed list of transactions (table 'purchases')
         for_price = lookups["price"]
         save_purchase(id(), "sold", shares, for_price, of_company)
 
-        # Sprawdzenie, ile gotówki ma user
+        # Checking how much cash the user has
         cash = cash_of(id())
 
-        # Zapisz powiększoną kwotę na koncie usera (tabl. users)
+        # Save the increased amount in the user's account (table 'users')
         balance = cash + (shares * for_price)
         save_balance(balance, id())
 
-        # Zaktualizuj wykaz posiadaczy akcji (tabl. ownership)
-        # a) jeśli user sprzedaje wszystkie: usuń wiersz z bazy
+        # Update the list of share holders (table 'ownership')
+        # a) if user sells all: delete row from database
         if shares == sum_up:
             delete_sum_up(id(), of_company)
 
-        # b) jeśli user sprzedaje część: zaktualizuj wiersz w bazie
+        # b) if user sells part: update row in database
         else:
             sum_up -= shares
             update_sum_up(id(), sum_up, of_company)
 
         return redirect("/")
 
-    # jeśli wszedł przez GET:
+    # if he entered via GET:
     else:
-        # zapytaj usera o symbol spółki:
+        # ask username of company symbol:
         return render_template("sell.html")
