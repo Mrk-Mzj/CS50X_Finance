@@ -8,23 +8,8 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, lookup, usd, id, password_check
-from db import (
-    cash_of,
-    check_username,
-    delete_sum_up,
-    read_history,
-    password_update,
-    possessions_of,
-    read_sum_up,
-    rows_of_id,
-    rows_of_username,
-    save_balance,
-    save_purchase,
-    save_sum_up,
-    save_user,
-    update_sum_up,
-)
+from helpers import *
+from db import *
 
 
 # Configure application
